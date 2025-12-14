@@ -1,0 +1,77 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+@theme {
+    --font-pixel: 'Press Start 2P', cursive;
+}
+
+/* Custom Utilities */
+@utility animate-reveal {
+    animation: reveal 0.5s forwards;
+}
+
+@utility animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes reveal {
+    0% {
+        transform: rotateX(90deg);
+        opacity: 0;
+    }
+
+    100% {
+        transform: rotateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pop-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@utility animate-pop-in {
+    animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Base styles */
+body {
+    background-image: url('/background.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    /* Force crisp pixel scaling for retro aesthetic */
+    image-rendering: auto;
+    color: white;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', cursive;
+}
+
+.vignette-overlay {
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 45%, rgba(0, 0, 0, 0) 80%);
+}
+
+.smooth-render {
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    /* Optional: extra sharpness for logos */
+}
