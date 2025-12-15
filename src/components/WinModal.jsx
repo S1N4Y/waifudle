@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
 
 export default function WinModal({ waifu, guessCount, onRestart, isNewRecord, onRecordSubmit, onBackToMenu }) {
@@ -21,8 +22,8 @@ export default function WinModal({ waifu, guessCount, onRestart, isNewRecord, on
         }
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+    return createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in text-base">
             <div className="relative w-full max-w-md p-8 text-center bg-gray-800 border-4 border-yellow-500 rounded-xl shadow-2xl">
                 <h2 className="mb-4 text-3xl font-bold text-yellow-400 font-pixel animate-bounce">
                     {isNewRecord ? 'NOUVEAU RECORD !' : 'VICTOIRE !'}
@@ -88,6 +89,7 @@ export default function WinModal({ waifu, guessCount, onRestart, isNewRecord, on
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
