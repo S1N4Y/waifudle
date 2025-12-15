@@ -10,7 +10,7 @@ function getRandomWaifu() {
     return waifuData[randomIndex];
 }
 
-export default function ClassicGame({ onBackToMenu }) {
+export default function ClassicGame({ onBackToMenu, filterSource }) {
     const [targetWaifu, setTargetWaifu] = useState(null);
     const [guesses, setGuesses] = useState([]);
     const [hasWon, setHasWon] = useState(false);
@@ -21,20 +21,49 @@ export default function ClassicGame({ onBackToMenu }) {
     // Initialize Game
     useEffect(() => {
         // Check local storage for existing session
+        // Note: For Manga Mode, we might want to skip local storage or namespace it, 
+        // but for now simplistic approach: if filterSource changes, we force new game.
         const savedState = localStorage.getItem('waifudle-state');
 
+        // If we are in "Filter Mode", we ignore previous generic saved games to avoid conflicts
+        // OR we verify if the saved target matches the filter.
+        let validSave = false;
         if (savedState) {
             const parsed = JSON.parse(savedState);
-            setTargetWaifu(parsed.target);
-            setGuesses(parsed.guesses);
-            setHasWon(parsed.hasWon);
-            setShowWinModal(parsed.hasWon); // Show immediately if reloading a won game
-        } else {
+            if (!filterSource) {
+                // Classic mode: valid if saved game valid
+                validSave = true;
+            } else {
+                // Filter mode: check if saved waifu matches current filter
+                if (parsed.target.source === filterSource) {
+                    validSave = true;
+                }
+            }
+
+            if (validSave) {
+                setTargetWaifu(parsed.target);
+                setGuesses(parsed.guesses);
+                setHasWon(parsed.hasWon);
+                setShowWinModal(parsed.hasWon);
+            }
+        }
+
+        if (!validSave) {
             // Start new game
-            setTargetWaifu(getRandomWaifu());
+            let pool = waifuData;
+            if (filterSource) {
+                pool = waifuData.filter(w => w.source === filterSource);
+                if (pool.length === 0) pool = waifuData; // Fallback if typo
+            }
+
+            const randomWaifu = pool[Math.floor(Math.random() * pool.length)];
+            setTargetWaifu(randomWaifu);
+            setGuesses([]);
+            setHasWon(false);
+            setShowWinModal(false);
         }
         setIsLoaded(true);
-    }, []);
+    }, [filterSource]); // Re-run if filterSource changes
 
     // Save state on change
     useEffect(() => {
@@ -87,21 +116,33 @@ export default function ClassicGame({ onBackToMenu }) {
             let newWins = 1;
             let isRecord = false;
 
-            if (currentRecord) {
-                newWins = currentRecord.global_wins + 1;
-                // Strict less than for new record, or if no score set yet (999)
-                if (score <= currentRecord.best_score || currentRecord.best_score === 999) {
+            // 2. Handle Record Breaking
+            // Return true if it's a record so we can show the input in the modal
+            // ONLY if NOT in filter mode
+            if (!filterSource) {
+                if (currentRecord) {
+                    // Strict less than for new record, or if no score set yet (999)
+                    if (score <= currentRecord.best_score || currentRecord.best_score === 999) {
+                        isRecord = true;
+                    }
+                } else {
+                    // First ever run
                     isRecord = true;
                 }
+            }
 
-                // Update wins
+            if (currentRecord) {
+                // Always increment wins regardless of mode
+                newWins = currentRecord.global_wins + 1;
+
                 await supabase
                     .from('global_records')
                     .update({ global_wins: newWins })
                     .eq('id', 1);
             } else {
-                // No global record exists yet (first ever run), create it
-                isRecord = true;
+                // If no record exists, create one
+                // (Though if in filter mode, we create it but don't set a "best_score" technically? 
+                // Actually it defaults to 999 so it's fine)
                 await supabase
                     .from('global_records')
                     .insert([{
@@ -113,8 +154,6 @@ export default function ClassicGame({ onBackToMenu }) {
                     }]);
             }
 
-            // 2. Handle Record Breaking
-            // Return true if it's a record so we can show the input in the modal
             return isRecord;
         } catch (e) {
             console.error("Supabase Error:", e);
@@ -161,22 +200,33 @@ export default function ClassicGame({ onBackToMenu }) {
 
     const usedIds = new Set(guesses.map(g => g.id));
 
+    // Filter the search pool if a source filter is active
+    const availableCandidates = filterSource
+        ? waifuData.filter(w => w.source === filterSource)
+        : waifuData;
+
     return (
-        <div className="w-full">
+        <div className="w-full animate-pop-in">
             <header className="py-4 mb-6 text-center border-b border-white/10 flex flex-col items-center">
                 <button
                     onClick={onBackToMenu}
-                    className="focus:outline-none hover:scale-105 transition-transform duration-200"
+                    className="focus:outline-none"
                     title="Retour au menu"
                 >
-                    <img src="/waifudle_logo.png" alt="WaifuDLE" className="h-24 md:h-32 object-contain drop-shadow-xl animate-pop-in smooth-render" />
+                    <img src="/waifudle_logo.png" alt="WaifuDLE" className="h-32 md:h-48 object-contain drop-shadow-2xl smooth-render hover:scale-105 transition-transform duration-300" />
                 </button>
-                <p className="mt-2 text-white/90 drop-shadow-md">Devinez la Waifu !</p>
+                <p className="mt-2 text-white/90 drop-shadow-md">
+                    {filterSource ? `Mode ${filterSource}` : "Devinez la Waifu !"}
+                </p>
             </header>
 
             <main className="flex-grow">
                 {!hasWon && (
-                    <SearchBar onGuess={handleGuess} usedIds={usedIds} />
+                    <SearchBar
+                        onGuess={handleGuess}
+                        usedIds={usedIds}
+                        candidates={availableCandidates}
+                    />
                 )}
 
                 <GuessGrid guesses={guesses} target={targetWaifu} />

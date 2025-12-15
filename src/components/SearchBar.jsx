@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import waifuData from '../waifu_local.json';
+import defaultWaifuData from '../waifu_local.json';
 
-export default function SearchBar({ onGuess, usedIds }) {
+export default function SearchBar({ onGuess, usedIds, candidates, disabled }) {
     const [query, setQuery] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const wrapperRef = useRef(null);
+
+    // Use candidates if provided, otherwise default to all
+    const dataPool = candidates || defaultWaifuData;
 
     useEffect(() => {
         function handleClickOutside(event) {
@@ -19,7 +22,7 @@ export default function SearchBar({ onGuess, usedIds }) {
 
     useEffect(() => {
         if (query.length > 0) {
-            const filtered = waifuData.filter(w =>
+            const filtered = dataPool.filter(w =>
                 w.name.toLowerCase().includes(query.toLowerCase()) &&
                 !usedIds.has(w.id)
             ).slice(0, 10);
@@ -29,7 +32,7 @@ export default function SearchBar({ onGuess, usedIds }) {
             setSuggestions([]);
             setShowSuggestions(false);
         }
-    }, [query, usedIds]);
+    }, [query, usedIds, dataPool]);
 
     const handleSelect = (waifu) => {
         onGuess(waifu);
