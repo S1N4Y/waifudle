@@ -5,9 +5,14 @@ import GuessGrid from './GuessGrid';
 import WinModal from './WinModal';
 import { supabase } from '../lib/supabaseClient';
 
-function getRandomWaifu() {
-    const randomIndex = Math.floor(Math.random() * waifuData.length);
-    return waifuData[randomIndex];
+function getRandomWaifu(filterSource) {
+    let pool = waifuData;
+    if (filterSource) {
+        pool = waifuData.filter(w => w.source === filterSource);
+        if (pool.length === 0) pool = waifuData;
+    }
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    return pool[randomIndex];
 }
 
 export default function ClassicGame({ onBackToMenu, filterSource }) {
@@ -50,14 +55,7 @@ export default function ClassicGame({ onBackToMenu, filterSource }) {
 
         if (!validSave) {
             // Start new game
-            let pool = waifuData;
-            if (filterSource) {
-                pool = waifuData.filter(w => w.source === filterSource);
-                if (pool.length === 0) pool = waifuData; // Fallback if typo
-            }
-
-            const randomWaifu = pool[Math.floor(Math.random() * pool.length)];
-            setTargetWaifu(randomWaifu);
+            setTargetWaifu(getRandomWaifu(filterSource));
             setGuesses([]);
             setHasWon(false);
             setShowWinModal(false);
@@ -187,7 +185,7 @@ export default function ClassicGame({ onBackToMenu, filterSource }) {
         setHasWon(false);
         setShowWinModal(false);
         setIsNewRecord(false);
-        setTargetWaifu(getRandomWaifu());
+        setTargetWaifu(getRandomWaifu(filterSource));
         localStorage.removeItem('waifudle-state');
     };
 
